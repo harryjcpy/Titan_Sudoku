@@ -1,0 +1,145 @@
+/* ====== GLOBAL STYLES ====== */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Bebas Neue', sans-serif;
+  background: linear-gradient(#1b1b1b, #111111);
+  color: #b62020;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #000000;
+  overflow-x: hidden;
+  background-image: url('/assets/wall-background.jpg');
+  background-size: cover;
+  background-position: center;
+}
+
+/* ====== HEADER ====== */
+h1 {
+  font-size: 3rem;
+  margin-top: 2rem;
+  letter-spacing: 2px;
+  color: #e21b1b;
+  text-shadow: 2px 2px 10px black;
+}
+
+/* ====== NUMBER SELECTOR ====== */
+button {
+  background-color: #e21b1b;
+  color: white;
+  border: none;
+  margin: 5px;
+  padding: 10px 14px;
+  font-size: 18px;
+  border-radius: 8px;
+  transition: 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 0 10px #e21b1b44;
+}
+
+button:hover {
+  background-color: #b71111;
+  box-shadow: 0 0 15px #e21b1b88;
+  transform: scale(1.1);
+}
+
+/* ====== SUDOKU GRID ====== */
+table {
+  margin-top: 20px;
+  border-collapse: collapse;
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.1);
+}
+
+td {
+  width: 50px;
+  height: 50px;
+  text-align: center;
+  font-size: 24px;
+  color: white;
+  background-color: rgba(20, 20, 20, 0.8);
+  border: 1px solid #555;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+td:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  transform: scale(1.03);
+}
+
+td:active {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* ====== 3x3 BLOCKS VISIBILITY ====== */
+tr:nth-child(3n) td {
+  border-bottom: 2px solid #aaa;
+}
+
+td:nth-child(3n) {
+  border-right: 2px solid #aaa;
+}
+
+/* ====== SELECTED NUMBER STYLE (Optional Highlight) ====== */
+
+.selector button {
+  background: transparent;
+  border: 2px solid #444;
+  border-radius: 8px;
+  margin: 5px;
+  padding: 5px;
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.selector button:hover {
+  transform: scale(1.1);
+  border-color: #e21b1b;
+}
+
+.selected-number {
+  background-color: #f8e71c !important;
+  color: #000;
+  font-weight: bold;
+}
+
+td {
+  width: 60px;
+  height: 60px;
+  padding: 5px;
+  background-color: rgba(20, 20, 20, 0.85);
+  border: 1px solid #555;
+  text-align: center;
+  vertical-align: middle;
+  transition: background 0.2s ease;
+}
+
+td:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+td img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 4px;
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 600px) {
+  td {
+    width: 35px;
+    height: 35px;
+    font-size: 18px;
+  }
+
+  button {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+}
