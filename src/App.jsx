@@ -55,15 +55,7 @@ function App() {
     </button>
   ))}
 </div>
-
-      {/* <div>
-        <h3>Select Titan (1–9)</h3>
-        {[1,2,3,4,5,6,7,8,9].map(n => (
-          <button key={n} onClick={() => setSelectedNumber(n)}>
-            {n}
-          </button>
-        ))}
-      </div> */}
+      
       <table style={{ borderCollapse: 'collapse', marginTop: '10px' }}>
         <tbody>
           {board.map((row, rowIndex) => (
