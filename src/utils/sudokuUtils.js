@@ -1,53 +1,10 @@
-// sudokuUtils.js
+// sudokuUtils.js - Proper Sudoku Generation Algorithm
 
-// Generates a shuffled array of digits 1-9
-const shuffle = (array) => {
-  const newArray = [...array];
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-  }
-  return newArray;
-};
-
-// Check if placing num at board[row][col] is valid
-const isSafe = (board, row, col, num) => {
-  // Check row - no duplicates in the same row
-  for (let x = 0; x < 9; x++) {
-    if (board[row][x] === num) return false;
-  }
-
-  // Check column - no duplicates in the same column
-  for (let x = 0; x < 9; x++) {
-    if (board[x][col] === num) return false;
-  }
-
-  // Check 3x3 box - no duplicates in the same 3x3 block
-  const startRow = Math.floor(row / 3) * 3;
-  const startCol = Math.floor(col / 3) * 3;
+// Check if number is not used in the 3x3 box
+const unUsedInBox = (grid, rowStart, colStart, num) => {
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
-      if (board[startRow + i][startCol + j] === num) return false;
-    }
-  }
-
-  return true;
-};
-
-// Solve sudoku using backtracking with randomization
-const solveSudoku = (board) => {
-  for (let row = 0; row < 9; row++) {
-    for (let col = 0; col < 9; col++) {
-      if (board[row][col] === 0) {
-        // Try numbers 1-9 in random order
-        const numbers = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        for (let num of numbers) {
-          if (isSafe(board, row, col, num)) {
-            board[row][col] = num;
-            if (solveSudoku(board)) return true;
-            board[row][col] = 0;
-          }
-        }
+      if (grid[rowStart + i][colStart + j] === num) {
         return false;
       }
     }
@@ -55,53 +12,118 @@ const solveSudoku = (board) => {
   return true;
 };
 
-// Create a deep copy of the board
-const copyBoard = (board) => {
-  return board.map(row => [...row]);
-};
-
-// Generate a complete valid Sudoku board
-const generateCompleteBoard = () => {
-  // Start with empty board (using 0 for empty cells during generation)
-  const board = Array.from({ length: 9 }, () => Array(9).fill(0));
-  
-  // Fill the board using backtracking with randomization
-  solveSudoku(board);
-  
-  return board;
-};
-
-// Count solutions for a puzzle (limit to 2 for efficiency)
-const countSolutions = (board) => {
-  let solutionCount = 0;
-  const boardCopy = copyBoard(board);
-  
-  const solve = (board) => {
-    if (solutionCount > 1) return; // Early exit if more than 1 solution
-    
-    for (let row = 0; row < 9; row++) {
-      for (let col = 0; col < 9; col++) {
-        if (board[row][col] === 0) {
-          for (let num = 1; num <= 9; num++) {
-            if (isSafe(board, row, col, num)) {
-              board[row][col] = num;
-              solve(board);
-              board[row][col] = 0;
-              if (solutionCount > 1) return;
-            }
-          }
-          return;
-        }
-      }
+// Fill a 3x3 box with random valid numbers
+const fillBox = (grid, row, col) => {
+  let num;
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      do {
+        num = Math.floor(Math.random() * 9) + 1;
+      } while (!unUsedInBox(grid, row, col, num));
+      grid[row + i][col + j] = num;
     }
-    solutionCount++;
-  };
-  
-  solve(boardCopy);
-  return solutionCount;
+  }
 };
 
-// Generate a Sudoku puzzle by removing cells from a complete board
+// Check if number is not used in the row
+const unUsedInRow = (grid, i, num) => {
+  for (let j = 0; j < 9; j++) {
+    if (grid[i][j] === num) {
+      return false;
+    }
+  }
+  return true;
+};
+
+// Check if number is not used in the column
+const unUsedInCol = (grid, j, num) => {
+  for (let i = 0; i < 9; i++) {
+    if (grid[i][j] === num) {
+      return false;
+    }
+  }
+  return true;
+};
+
+// Check if it's safe to place number at position (i, j)
+const checkIfSafe = (grid, i, j, num) => {
+  return unUsedInRow(grid, i, num) && 
+         unUsedInCol(grid, j, num) && 
+         unUsedInBox(grid, i - (i % 3), j - (j % 3), num);
+};
+
+// Fill the diagonal 3x3 matrices
+const fillDiagonal = (grid) => {
+  for (let i = 0; i < 9; i += 3) {
+    fillBox(grid, i, i);
+  }
+};
+
+// Fill remaining cells using backtracking
+const fillRemaining = (grid, i, j) => {
+  // If we've reached the end of the grid
+  if (i === 9) {
+    return true;
+  }
+
+  // Move to next row when current row is finished
+  if (j === 9) {
+    return fillRemaining(grid, i + 1, 0);
+  }
+
+  // Skip if cell is already filled
+  if (grid[i][j] !== 0) {
+    return fillRemaining(grid, i, j + 1);
+  }
+
+  // Try numbers 1-9 in current cell
+  for (let num = 1; num <= 9; num++) {
+    if (checkIfSafe(grid, i, j, num)) {
+      grid[i][j] = num;
+      if (fillRemaining(grid, i, j + 1)) {
+        return true;
+      }
+      grid[i][j] = 0;
+    }
+  }
+
+  return false;
+};
+
+// Remove K digits randomly from the grid
+const removeKDigits = (grid, k) => {
+  let count = k;
+  while (count > 0) {
+    // Pick a random cell
+    let cellId = Math.floor(Math.random() * 81);
+    
+    // Get the row and column indices
+    let i = Math.floor(cellId / 9);
+    let j = cellId % 9;
+    
+    // Remove the digit if the cell is not already empty
+    if (grid[i][j] !== 0) {
+      grid[i][j] = 0;
+      count--;
+    }
+  }
+};
+
+// Generate a complete Sudoku grid
+const generateCompleteGrid = () => {
+  // Initialize an empty 9x9 grid
+  let grid = new Array(9).fill(0).map(() => new Array(9).fill(0));
+  
+  // Fill the diagonal 3x3 matrices first
+  fillDiagonal(grid);
+  
+  // Fill the remaining blocks in the grid
+  fillRemaining(grid, 0, 0);
+  
+  return grid;
+};
+
+// Main function to generate Sudoku puzzle
 export const generateSudokuPuzzle = (difficulty = 'medium') => {
   let cellsToRemove;
   switch (difficulty) {
@@ -118,73 +140,24 @@ export const generateSudokuPuzzle = (difficulty = 'medium') => {
       cellsToRemove = 45;
   }
   
-  // Generate a complete valid board
-  const solution = generateCompleteBoard();
-  const puzzle = copyBoard(solution);
+  // Generate a complete valid Sudoku grid
+  const solution = generateCompleteGrid();
   
-  // Convert 0s to nulls for the puzzle format
-  for (let i = 0; i < 9; i++) {
-    for (let j = 0; j < 9; j++) {
-      puzzle[i][j] = solution[i][j];
-    }
-  }
+  // Create a copy for the puzzle
+  const puzzle = solution.map(row => [...row]);
   
-  // Create array of all cell positions
-  const positions = [];
-  for (let row = 0; row < 9; row++) {
-    for (let col = 0; col < 9; col++) {
-      positions.push([row, col]);
-    }
-  }
+  // Remove digits to create the puzzle
+  removeKDigits(puzzle, cellsToRemove);
   
-  // Shuffle positions randomly
-  shuffle(positions);
+  // Convert 0s to nulls for the UI
+  const puzzleForUI = puzzle.map(row => 
+    row.map(cell => cell === 0 ? null : cell)
+  );
   
-  let removed = 0;
-  let attempts = 0;
-  const maxAttempts = positions.length * 2;
-  
-  // Try to remove cells while maintaining unique solution
-  for (let [row, col] of positions) {
-    if (removed >= cellsToRemove || attempts >= maxAttempts) break;
-    attempts++;
-    
-    // Temporarily remove the cell
-    const backup = puzzle[row][col];
-    puzzle[row][col] = 0; // Use 0 for empty during solution counting
-    
-    // Check if puzzle still has unique solution
-    const solutions = countSolutions(puzzle);
-    
-    if (solutions === 1) {
-      // Keep the cell removed (convert to null for display)
-      puzzle[row][col] = null;
-      removed++;
-    } else {
-      // Restore the cell
-      puzzle[row][col] = backup;
-    }
-  }
-  
-  // Ensure we have the minimum number of clues for a valid puzzle
-  if (removed < Math.min(cellsToRemove - 10, 30)) {
-    // If we couldn't remove enough cells, try a different approach
-    // Remove cells more aggressively but ensure no conflicts
-    const minClues = 25; // Minimum clues needed for most puzzles
-    const currentClues = 81 - removed;
-    
-    if (currentClues > minClues + 10) {
-      // Try to remove more cells using a simpler approach
-      for (let [row, col] of shuffle([...positions])) {
-        if (puzzle[row][col] !== null && removed < cellsToRemove) {
-          puzzle[row][col] = null;
-          removed++;
-        }
-      }
-    }
-  }
-  
-  return { puzzle, solution };
+  return { 
+    puzzle: puzzleForUI, 
+    solution: solution 
+  };
 };
 
 // Check if the board is completely filled
@@ -268,16 +241,4 @@ export const isValidBoard = (board) => {
   }
   
   return true;
-};
-
-// Helper function to check if puzzle is solvable
-export const isPuzzleSolvable = (board) => {
-  const boardCopy = copyBoard(board);
-  // Convert nulls to 0s for solving
-  for (let i = 0; i < 9; i++) {
-    for (let j = 0; j < 9; j++) {
-      if (boardCopy[i][j] === null) boardCopy[i][j] = 0;
-    }
-  }
-  return solveSudoku(boardCopy);
 };

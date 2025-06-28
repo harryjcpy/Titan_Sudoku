@@ -19,7 +19,11 @@ function App() {
     // Use setTimeout to prevent UI blocking during puzzle generation
     setTimeout(() => {
       try {
+        console.log('Generating new Sudoku puzzle...');
         const { puzzle, solution } = generateSudokuPuzzle('medium');
+        
+        console.log('Generated puzzle:', puzzle);
+        console.log('Generated solution:', solution);
         
         // Validate the generated puzzle
         if (!isValidBoard(puzzle)) {
