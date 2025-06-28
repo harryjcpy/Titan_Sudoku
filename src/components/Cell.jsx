@@ -1,27 +1,8 @@
-// // src/components/Cell.jsx
-
-// export default function Cell({ value, onClick, row, col }) {
-//   return (
-//     <td
-//       onClick={() => onClick(row, col)}
-//       style={{
-//         width: '40px',
-//         height: '40px',
-//         border: '1px solid black',
-//         textAlign: 'center',
-//         cursor: 'pointer'
-//       }}
-//     >
-//       {value}
-//     </td>
-//   );
-// }
-
-// Cell.jsx
-
-function Cell({ value, onClick, row, col }) {
+function Cell({ value, onClick, row, col, isInitial }) {
   const handleClick = () => {
-    onClick(row, col);
+    if (!isInitial) {
+      onClick(row, col);
+    }
   };
 
   const renderValue = () => {
@@ -36,13 +17,23 @@ function Cell({ value, onClick, row, col }) {
           height: '100%',
           objectFit: 'contain',
           pointerEvents: 'none',
+          opacity: isInitial ? 1 : 0.8,
         }}
       />
     );
   };
 
   return (
-    <td onClick={handleClick}>
+    <td 
+      onClick={handleClick}
+      style={{
+        backgroundColor: isInitial 
+          ? 'rgba(30, 30, 30, 0.9)' 
+          : 'rgba(20, 20, 20, 0.85)',
+        cursor: isInitial ? 'default' : 'pointer',
+        border: isInitial ? '2px solid #666' : '1px solid #555'
+      }}
+    >
       {renderValue()}
     </td>
   );
