@@ -13,41 +13,71 @@ function App() {
   const [gameWon, setGameWon] = useState(false);
 
   const generateNewPuzzle = () => {
+    console.log('Starting puzzle generation...');
     setIsLoading(true);
     setGameWon(false);
     
     // Use setTimeout to prevent UI blocking during puzzle generation
     setTimeout(() => {
       try {
-        console.log('Generating new Sudoku puzzle...');
-        const { puzzle, solution } = generateSudokuPuzzle('medium');
+        console.log('Calling generateSudokuPuzzle...');
+        const result = generateSudokuPuzzle('medium');
+        console.log('Generated result:', result);
         
-        console.log('Generated puzzle:', puzzle);
-        console.log('Generated solution:', solution);
-        
-        // Validate the generated puzzle
-        if (!isValidBoard(puzzle)) {
-          console.error('Generated puzzle has conflicts, regenerating...');
-          generateNewPuzzle();
+        if (!result || !result.puzzle || !result.solution) {
+          console.error('Invalid result from generateSudokuPuzzle');
           return;
         }
         
+        const { puzzle, solution } = result;
+        
+        console.log('Setting board state...');
         setBoard(puzzle);
         setSolution(solution);
         setInitialBoard(puzzle.map(row => [...row])); // Deep copy
         setSelectedNumber(null);
         setIsLoading(false);
         
-        console.log('New puzzle generated successfully');
+        console.log('Puzzle generation completed successfully');
       } catch (error) {
-        console.error('Error generating puzzle:', error);
-        // Retry generation
-        setTimeout(generateNewPuzzle, 100);
+        console.error('Error in generateNewPuzzle:', error);
+        setIsLoading(false);
+        
+        // Set a fallback puzzle if generation fails
+        const fallbackPuzzle = [
+          [5,3,null,null,7,null,null,null,null],
+          [6,null,null,1,9,5,null,null,null],
+          [null,9,8,null,null,null,null,6,null],
+          [8,null,null,null,6,null,null,null,3],
+          [4,null,null,8,null,3,null,null,1],
+          [7,null,null,null,2,null,null,null,6],
+          [null,6,null,null,null,null,2,8,null],
+          [null,null,null,4,1,9,null,null,5],
+          [null,null,null,null,8,null,null,7,9]
+        ];
+        
+        const fallbackSolution = [
+          [5,3,4,6,7,8,9,1,2],
+          [6,7,2,1,9,5,3,4,8],
+          [1,9,8,3,4,2,5,6,7],
+          [8,5,9,7,6,1,4,2,3],
+          [4,2,6,8,5,3,7,9,1],
+          [7,1,3,9,2,4,8,5,6],
+          [9,6,1,5,3,7,2,8,4],
+          [2,8,7,4,1,9,6,3,5],
+          [3,4,5,2,8,6,1,7,9]
+        ];
+        
+        setBoard(fallbackPuzzle);
+        setSolution(fallbackSolution);
+        setInitialBoard(fallbackPuzzle.map(row => [...row]));
+        setSelectedNumber(null);
       }
     }, 100);
   };
 
   useEffect(() => {
+    console.log('App component mounted, generating initial puzzle...');
     generateNewPuzzle();
   }, []);
 
@@ -101,6 +131,20 @@ function App() {
             Creating a conflict-free puzzle
           </span>
         </h2>
+      </div>
+    );
+  }
+
+  // Safety check to ensure board is properly initialized
+  if (!board || board.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '100px' }}>
+        <h2 style={{ color: '#e21b1b', textAlign: 'center' }}>
+          Error loading puzzle. Please refresh the page.
+        </h2>
+        <button onClick={generateNewPuzzle} style={{ marginTop: '20px', padding: '10px 20px' }}>
+          Try Again
+        </button>
       </div>
     );
   }
