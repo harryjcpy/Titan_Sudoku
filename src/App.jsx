@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Cell from './components/Cell';
-import { generateSudokuPuzzle, isValidMove, isBoardComplete } from './utils/sudokuUtils';
+import { generateSudokuPuzzle, isValidMove, isBoardComplete, isValidBoard } from './utils/sudokuUtils';
 import TitleImg from './components/Title.jpg';
 import './App.css';
 
@@ -10,28 +10,49 @@ function App() {
   const [selectedNumber, setSelectedNumber] = useState(null);
   const [initialBoard, setInitialBoard] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [gameWon, setGameWon] = useState(false);
 
-  useEffect(() => {
-    const generatePuzzle = () => {
-      setIsLoading(true);
-      // Use setTimeout to prevent UI blocking during puzzle generation
-      setTimeout(() => {
+  const generateNewPuzzle = () => {
+    setIsLoading(true);
+    setGameWon(false);
+    
+    // Use setTimeout to prevent UI blocking during puzzle generation
+    setTimeout(() => {
+      try {
         const { puzzle, solution } = generateSudokuPuzzle('medium');
+        
+        // Validate the generated puzzle
+        if (!isValidBoard(puzzle)) {
+          console.error('Generated puzzle has conflicts, regenerating...');
+          generateNewPuzzle();
+          return;
+        }
+        
         setBoard(puzzle);
         setSolution(solution);
         setInitialBoard(puzzle.map(row => [...row])); // Deep copy
+        setSelectedNumber(null);
         setIsLoading(false);
-      }, 100);
-    };
-    
-    generatePuzzle();
+        
+        console.log('New puzzle generated successfully');
+      } catch (error) {
+        console.error('Error generating puzzle:', error);
+        // Retry generation
+        setTimeout(generateNewPuzzle, 100);
+      }
+    }, 100);
+  };
+
+  useEffect(() => {
+    generateNewPuzzle();
   }, []);
 
   const handleCellClick = (row, col) => {
-    if (selectedNumber === null || initialBoard[row][col] !== null) return;
+    if (selectedNumber === null || initialBoard[row][col] !== null || gameWon) return;
 
+    // Validate the move
     if (!isValidMove(board, row, col, selectedNumber)) {
-      alert("Invalid move! This number conflicts with Sudoku rules.");
+      alert("Invalid move! This Titan conflicts with Sudoku rules - each Titan must appear only once in each row, column, and 3x3 block.");
       return;
     }
 
@@ -39,21 +60,27 @@ function App() {
     newBoard[row][col] = selectedNumber;
     setBoard(newBoard);
 
+    // Check if game is complete
     if (isBoardComplete(newBoard)) {
-      alert("🎉 Victory! The Titan Sudoku is complete!");
+      if (isValidBoard(newBoard)) {
+        setGameWon(true);
+        alert("🎉 Victory! You've mastered the Titan Sudoku! All Titans are in their correct positions!");
+      } else {
+        alert("The board is full but contains conflicts. Please check your moves.");
+      }
     }
   };
 
   const handleNewGame = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      const { puzzle, solution } = generateSudokuPuzzle('medium');
-      setBoard(puzzle);
-      setSolution(solution);
-      setInitialBoard(puzzle.map(row => [...row]));
-      setSelectedNumber(null);
-      setIsLoading(false);
-    }, 100);
+    generateNewPuzzle();
+  };
+
+  const clearCell = (row, col) => {
+    if (initialBoard[row][col] !== null || gameWon) return;
+    
+    const newBoard = board.map(row => [...row]);
+    newBoard[row][col] = null;
+    setBoard(newBoard);
   };
 
   if (isLoading) {
@@ -64,7 +91,12 @@ function App() {
           alt="Attack on Titan Sudoku"
           style={{ height: '150px', borderRadius: '20px', marginBottom: '20px' }}
         />
-        <h2 style={{ color: '#e21b1b' }}>Generating Titan Sudoku...</h2>
+        <h2 style={{ color: '#e21b1b', textAlign: 'center' }}>
+          Generating Titan Sudoku...<br/>
+          <span style={{ fontSize: '14px', color: '#999' }}>
+            Creating a conflict-free puzzle
+          </span>
+        </h2>
       </div>
     );
   }
@@ -76,6 +108,20 @@ function App() {
         alt="Attack on Titan Sudoku"
         style={{ height: '150px', borderRadius: '20px', marginTop: '24px', marginBottom: '22px' }}
       />
+      
+      {gameWon && (
+        <div style={{ 
+          backgroundColor: '#f8e71c', 
+          color: '#000', 
+          padding: '10px 20px', 
+          borderRadius: '8px', 
+          marginBottom: '20px',
+          fontWeight: 'bold',
+          fontSize: '18px'
+        }}>
+          🎉 VICTORY! All Titans are positioned correctly! 🎉
+        </div>
+      )}
       
       <button 
         onClick={handleNewGame}
@@ -101,7 +147,8 @@ function App() {
             onClick={() => setSelectedNumber(n)}
             style={{
               backgroundColor: selectedNumber === n ? '#f8e71c' : '#e21b1b',
-              color: selectedNumber === n ? '#000' : 'white'
+              color: selectedNumber === n ? '#000' : 'white',
+              border: selectedNumber === n ? '2px solid #000' : '2px solid transparent'
             }}
           >
             <img
@@ -111,6 +158,10 @@ function App() {
             />
           </button>
         ))}
+      </div>
+
+      <div style={{ marginBottom: '10px', color: '#ccc', fontSize: '14px', textAlign: 'center' }}>
+        Right-click on a cell to clear it | Each Titan must appear once per row, column, and 3x3 block
       </div>
       
       <table style={{ borderCollapse: 'collapse', marginTop: '10px' }}>
@@ -122,6 +173,7 @@ function App() {
                   key={`${rowIndex}-${colIndex}`}
                   value={val}
                   onClick={handleCellClick}
+                  onRightClick={clearCell}
                   row={rowIndex}
                   col={colIndex}
                   isInitial={initialBoard[rowIndex][colIndex] !== null}
