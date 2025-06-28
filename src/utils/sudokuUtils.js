@@ -1,4 +1,4 @@
-// sudokuUtils.js - Proper Sudoku Generation Algorithm
+// sudokuUtils.js - Robust Sudoku Generation Algorithm
 
 // Check if number is not used in the 3x3 box
 const unUsedInBox = (grid, rowStart, colStart, num) => {
@@ -12,15 +12,51 @@ const unUsedInBox = (grid, rowStart, colStart, num) => {
   return true;
 };
 
-// Fill a 3x3 box with random valid numbers
+// Fill a 3x3 box with random valid numbers - improved version
 const fillBox = (grid, row, col) => {
-  let num;
+  // Create array of numbers 1-9 and shuffle them
+  const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  
+  // Shuffle the numbers array
+  for (let i = numbers.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [numbers[i], numbers[j]] = [numbers[j], numbers[i]];
+  }
+  
+  let numIndex = 0;
+  
   for (let i = 0; i < 3; i++) {
     for (let j = 0; j < 3; j++) {
-      do {
-        num = Math.floor(Math.random() * 9) + 1;
-      } while (!unUsedInBox(grid, row, col, num));
-      grid[row + i][col + j] = num;
+      // Find the next available number for this position
+      let placed = false;
+      let attempts = 0;
+      
+      while (!placed && attempts < 9) {
+        const num = numbers[(numIndex + attempts) % 9];
+        
+        if (unUsedInBox(grid, row, col, num)) {
+          grid[row + i][col + j] = num;
+          
+          // Remove this number from available numbers for this box
+          const usedIndex = numbers.indexOf(num);
+          numbers.splice(usedIndex, 1);
+          numbers.push(num); // Add to end to avoid reuse
+          
+          placed = true;
+        }
+        attempts++;
+      }
+      
+      // If we couldn't place a number, restart this box
+      if (!placed) {
+        // Clear the box and try again
+        for (let x = 0; x < 3; x++) {
+          for (let y = 0; y < 3; y++) {
+            grid[row + x][col + y] = 0;
+          }
+        }
+        return fillBox(grid, row, col); // Recursive retry
+      }
     }
   }
 };
@@ -59,7 +95,7 @@ const fillDiagonal = (grid) => {
   }
 };
 
-// Fill remaining cells using backtracking
+// Fill remaining cells using backtracking with randomization
 const fillRemaining = (grid, i, j) => {
   // If we've reached the end of the grid
   if (i === 9) {
@@ -76,8 +112,15 @@ const fillRemaining = (grid, i, j) => {
     return fillRemaining(grid, i, j + 1);
   }
 
-  // Try numbers 1-9 in current cell
-  for (let num = 1; num <= 9; num++) {
+  // Create shuffled array of numbers 1-9 for randomization
+  const numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  for (let k = numbers.length - 1; k > 0; k--) {
+    const randomIndex = Math.floor(Math.random() * (k + 1));
+    [numbers[k], numbers[randomIndex]] = [numbers[randomIndex], numbers[k]];
+  }
+
+  // Try numbers in random order
+  for (let num of numbers) {
     if (checkIfSafe(grid, i, j, num)) {
       grid[i][j] = num;
       if (fillRemaining(grid, i, j + 1)) {
@@ -93,9 +136,17 @@ const fillRemaining = (grid, i, j) => {
 // Remove K digits randomly from the grid
 const removeKDigits = (grid, k) => {
   let count = k;
-  while (count > 0) {
+  const attempts = new Set();
+  
+  while (count > 0 && attempts.size < 81) {
     // Pick a random cell
     let cellId = Math.floor(Math.random() * 81);
+    
+    // Skip if we've already tried this cell
+    if (attempts.has(cellId)) {
+      continue;
+    }
+    attempts.add(cellId);
     
     // Get the row and column indices
     let i = Math.floor(cellId / 9);
@@ -109,39 +160,87 @@ const removeKDigits = (grid, k) => {
   }
 };
 
-// Generate a complete Sudoku grid
+// Generate a complete Sudoku grid with retry mechanism
 const generateCompleteGrid = () => {
-  try {
-    // Initialize an empty 9x9 grid
-    let grid = new Array(9).fill(0).map(() => new Array(9).fill(0));
-    
-    // Fill the diagonal 3x3 matrices first
-    fillDiagonal(grid);
-    
-    // Fill the remaining blocks in the grid
-    const success = fillRemaining(grid, 0, 0);
-    
-    if (!success) {
-      console.error('Failed to generate complete grid, retrying...');
-      return generateCompleteGrid(); // Retry
+  const maxAttempts = 10;
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      console.log(`Grid generation attempt ${attempt + 1}/${maxAttempts}`);
+      
+      // Initialize an empty 9x9 grid
+      let grid = new Array(9).fill(0).map(() => new Array(9).fill(0));
+      
+      // Fill the diagonal 3x3 matrices first
+      fillDiagonal(grid);
+      console.log('Diagonal boxes filled');
+      
+      // Fill the remaining blocks in the grid
+      const success = fillRemaining(grid, 0, 0);
+      
+      if (success) {
+        console.log('Complete grid generated successfully');
+        return grid;
+      } else {
+        console.log(`Attempt ${attempt + 1} failed, retrying...`);
+      }
+    } catch (error) {
+      console.error(`Error in attempt ${attempt + 1}:`, error);
     }
-    
-    return grid;
-  } catch (error) {
-    console.error('Error in generateCompleteGrid:', error);
-    // Return a simple valid grid as fallback
-    return [
-      [5,3,4,6,7,8,9,1,2],
-      [6,7,2,1,9,5,3,4,8],
-      [1,9,8,3,4,2,5,6,7],
-      [8,5,9,7,6,1,4,2,3],
-      [4,2,6,8,5,3,7,9,1],
-      [7,1,3,9,2,4,8,5,6],
-      [9,6,1,5,3,7,2,8,4],
-      [2,8,7,4,1,9,6,3,5],
-      [3,4,5,2,8,6,1,7,9]
-    ];
   }
+  
+  // If all attempts failed, return a known valid grid
+  console.log('All generation attempts failed, using fallback grid');
+  return [
+    [5,3,4,6,7,8,9,1,2],
+    [6,7,2,1,9,5,3,4,8],
+    [1,9,8,3,4,2,5,6,7],
+    [8,5,9,7,6,1,4,2,3],
+    [4,2,6,8,5,3,7,9,1],
+    [7,1,3,9,2,4,8,5,6],
+    [9,6,1,5,3,7,2,8,4],
+    [2,8,7,4,1,9,6,3,5],
+    [3,4,5,2,8,6,1,7,9]
+  ];
+};
+
+// Validate that a grid is a valid complete Sudoku
+const isValidCompleteGrid = (grid) => {
+  // Check all rows
+  for (let row = 0; row < 9; row++) {
+    const seen = new Set();
+    for (let col = 0; col < 9; col++) {
+      const val = grid[row][col];
+      if (val < 1 || val > 9 || seen.has(val)) return false;
+      seen.add(val);
+    }
+  }
+  
+  // Check all columns
+  for (let col = 0; col < 9; col++) {
+    const seen = new Set();
+    for (let row = 0; row < 9; row++) {
+      const val = grid[row][col];
+      if (val < 1 || val > 9 || seen.has(val)) return false;
+      seen.add(val);
+    }
+  }
+  
+  // Check all 3x3 boxes
+  for (let boxRow = 0; boxRow < 3; boxRow++) {
+    for (let boxCol = 0; boxCol < 3; boxCol++) {
+      const seen = new Set();
+      for (let row = boxRow * 3; row < boxRow * 3 + 3; row++) {
+        for (let col = boxCol * 3; col < boxCol * 3 + 3; col++) {
+          const val = grid[row][col];
+          if (val < 1 || val > 9 || seen.has(val)) return false;
+          seen.add(val);
+        }
+      }
+    }
+  }
+  
+  return true;
 };
 
 // Main function to generate Sudoku puzzle
@@ -162,24 +261,32 @@ export const generateSudokuPuzzle = (difficulty = 'medium') => {
         cellsToRemove = 45;
     }
     
-    console.log('Generating complete grid...');
+    console.log(`Generating ${difficulty} puzzle (removing ${cellsToRemove} cells)...`);
+    
     // Generate a complete valid Sudoku grid
     const solution = generateCompleteGrid();
-    console.log('Complete grid generated:', solution);
+    
+    // Validate the complete grid
+    if (!isValidCompleteGrid(solution)) {
+      console.error('Generated grid is invalid, using fallback');
+      throw new Error('Invalid grid generated');
+    }
+    
+    console.log('Valid complete grid generated');
     
     // Create a copy for the puzzle
     const puzzle = solution.map(row => [...row]);
     
     // Remove digits to create the puzzle
     removeKDigits(puzzle, cellsToRemove);
-    console.log('Puzzle after removing digits:', puzzle);
+    console.log(`Removed ${cellsToRemove} digits from puzzle`);
     
     // Convert 0s to nulls for the UI
     const puzzleForUI = puzzle.map(row => 
       row.map(cell => cell === 0 ? null : cell)
     );
     
-    console.log('Final puzzle for UI:', puzzleForUI);
+    console.log('Puzzle generation completed successfully');
     
     return { 
       puzzle: puzzleForUI, 
@@ -187,7 +294,8 @@ export const generateSudokuPuzzle = (difficulty = 'medium') => {
     };
   } catch (error) {
     console.error('Error in generateSudokuPuzzle:', error);
-    // Return a simple fallback puzzle
+    
+    // Return a well-tested fallback puzzle
     const fallbackSolution = [
       [5,3,4,6,7,8,9,1,2],
       [6,7,2,1,9,5,3,4,8],
@@ -212,6 +320,7 @@ export const generateSudokuPuzzle = (difficulty = 'medium') => {
       [null,null,null,null,8,null,null,7,9]
     ];
     
+    console.log('Using fallback puzzle');
     return {
       puzzle: fallbackPuzzle,
       solution: fallbackSolution
